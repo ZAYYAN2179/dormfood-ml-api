@@ -2,3 +2,4 @@ serviceAccountKey.json
 venv/
 __pycache__/
 *.pyc
+android_guide.md
