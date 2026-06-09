@@ -25,23 +25,25 @@ db = firestore.client()
 # === KONFIGURASI DUMMY DATA ===
 
 DUMMY_MENUS = {
-    "Ayam Bumbu Teriyaki":   {"base_qty": 12, "variance": 4, "weekend_boost": 3},
-    "Ayam Geprek":      {"base_qty": 8,  "variance": 3, "weekend_boost": 2},
-    "Ayam Goreng Komplit":     {"base_qty": 6,  "variance": 2, "weekend_boost": 1},
-    "Ayam Karage Original":        {"base_qty": 20, "variance": 5, "weekend_boost": 5},
-    "Mie Goreng Spesial":   {"base_qty": 5,  "variance": 2, "weekend_boost": 2},
-    "Nasi Goreng Ayam":   {"base_qty": 10, "variance": 3, "weekend_boost": 4},
-    "Teh Manis Dingin":   {"base_qty": 7,  "variance": 2, "weekend_boost": 1},
+    "Air Mineral":          {"base_qty": 15, "variance": 3, "weekend_boost": 2},
+    "Es Teh":               {"base_qty": 35, "variance": 8, "weekend_boost": 10},
+    "Nasi Goreng Ayam":     {"base_qty": 20, "variance": 5, "weekend_boost": 6},
+    "Nasi Goreng Sapi":     {"base_qty": 10, "variance": 3, "weekend_boost": 2},
+    "Nasi Goreng Kambing":  {"base_qty": 5,  "variance": 2, "weekend_boost": 1},
+    "Paket Ayam Bakar":     {"base_qty": 12, "variance": 4, "weekend_boost": 4},
+    "Paket Ayam Geprek":    {"base_qty": 25, "variance": 6, "weekend_boost": 8},
+    "Paket Ayam Goreng":    {"base_qty": 15, "variance": 4, "weekend_boost": 4},
 }
 
 DUMMY_HARGA = {
-    "Ayam Bumbu Teriyaki": 17000,
-    "Ayam Geprek": 15000,
-    "Ayam Goreng Komplit": 17000,
-    "Ayam Karage Original": 16000,
-    "Mie Goreng Spesial": 15000,
+    "Air Mineral": 4000,
+    "Es Teh": 5000,
     "Nasi Goreng Ayam": 15000,
-    "Teh Manis Dingin": 4000,
+    "Nasi Goreng Sapi": 20000,
+    "Nasi Goreng Kambing": 22000,
+    "Paket Ayam Bakar": 18000,
+    "Paket Ayam Geprek": 17000,
+    "Paket Ayam Goreng": 16000,
 }
 
 DUMMY_USER_ID = "dummy_user_001"
@@ -57,10 +59,30 @@ def generate_daily_orders(warung_id: str, date: datetime) -> list:
     if is_weekend:
         num_orders = random.randint(3, 6)
 
-    for _ in range(num_orders):
-        # Pilih 1-3 menu per order
-        num_items = random.randint(1, 3)
-        selected_menus = random.sample(list(DUMMY_MENUS.keys()), min(num_items, len(DUMMY_MENUS)))
+    # Menu baru yang dibatasi datanya agar menghasilkan status "Data Terbatas" (7-13 hari data)
+    new_menus = {"Nasi Goreng Sapi", "Nasi Goreng Kambing", "Paket Ayam Bakar"}
+    days_ago = (datetime.now().date() - date.date()).days
+
+    # Filter menu yang diperbolehkan untuk tanggal ini
+    allowed_menus = []
+    for menu_name in DUMMY_MENUS.keys():
+        if menu_name in new_menus:
+            # Menu baru hanya boleh memiliki transaksi dalam 9 hari terakhir
+            if days_ago <= 9:
+                allowed_menus.append(menu_name)
+        else:
+            # Menu lama boleh memiliki transaksi kapan saja
+            allowed_menus.append(menu_name)
+
+    for i in range(num_orders):
+        # Untuk order pertama, jika dalam periode 9 hari terakhir, masukkan semua allowed_menus
+        # agar dijamin terjual tiap harinya dan menghasilkan tepat 9 hari data (untuk memicu status Data Terbatas)
+        if i == 0 and days_ago <= 9:
+            selected_menus = list(allowed_menus)
+        else:
+            # Pilih 1-3 menu secara acak seperti biasa
+            num_items = random.randint(1, min(3, len(allowed_menus)))
+            selected_menus = random.sample(allowed_menus, num_items)
 
         items = []
         subtotal = 0
